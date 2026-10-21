@@ -69,15 +69,23 @@ function copyCodes(pre){const s=codes();if(!s){msg('还没选中任何一项');r
 document.getElementById('cpy').onclick=()=>copyCodes();
 async function ej(u,o){const r=await fetch(EA+u,o);const j=await r.json();if(j.status!='success')throw Error(JSON.stringify(j).slice(0,120));return j.data}
 function flat(fs,m={}){(fs||[]).forEach(f=>{if(!(f.name in m))m[f.name]=f.id;flat(f.children,m)});return m}
+const RT='https://ntfy.sh/vac-85101e700bbbcc57786307a9';
 document.getElementById('imp').onclick=async function(){const cs=sel();if(!cs.length){msg('还没选中任何一项');return}
- if(!confirm('确认把选中的 '+cs.length+' 个'+(V=='video'?'视频':'图片')+'导入 Eagle？'))return;
- let fm;try{fm=flat(await ej('/api/folder/list'))}catch(e){copyCodes('连不上 Eagle（需在开着 Eagle 的电脑浏览器打开）。已改为复制编号：\n');return}
- this.disabled=true;let ok=0,bad=0;
- for(const d of cs){try{let fid=fm[d.folder];if(!fid){const f=await ej('/api/folder/create',{method:'POST',body:JSON.stringify({folderName:d.folder})});fid=fm[d.folder]=f.id}
-  const tags=(d.tags||'').split(/[,，、;；\s]+/).filter(Boolean);
-  if(d.src)await ej('/api/item/addFromURL',{method:'POST',body:JSON.stringify({url:d.src,name:d.name,website:d.url,annotation:d.ann,tags,folderId:fid,headers:{Referer:'https://weibo.com/'}})});
-  else await ej('/api/item/addFromPaths',{method:'POST',body:JSON.stringify({items:[{path:d.path,name:d.name,website:d.url,annotation:d.ann,tags}],folderId:fid})});
-  ok++;setSel(d,false)}catch(e){bad++}msg('导入中… 成功 '+ok+'，失败 '+bad)}
- this.disabled=false;msg('完成：成功 '+ok+' 个，失败 '+bad+' 个');CB?openDet(CB):home()};
+ if(!confirm('确认把选中的 '+cs.length+' 个'+(V=='video'?'视频':'图片')+'发到电脑导入 Eagle？'))return;
+ const jobId=Date.now().toString(36)+Math.random().toString(36).slice(2,8),ts=Math.floor(Date.now()/1000)-5,v=V;
+ const items=cs.map(d=>({id:(v=='video'?'V':'I')+d.no,type:d.src?'url':'path',url:d.src||'',path:d.src?'':d.path,website:d.url||'',name:d.name,annotation:d.ann||'',tags:(d.tags||'').split(/[,，、;；\s]+/).filter(Boolean),folder:d.folder}));
+ this.disabled=true;
+ items.forEach(it=>{if(it.annotation.length>800)it.annotation=it.annotation.slice(0,800)+'…'});
+ const enc=o=>new TextEncoder().encode(JSON.stringify(o)).length,chunks=[[]];items.forEach(it=>{const c=chunks[chunks.length-1];if(c.length&&enc({jobId,part:99,parts:99,items:c.concat([it])})>3800)chunks.push([it]);else c.push(it)});
+ try{for(let i=0;i<chunks.length;i++){const r=await fetch(RT,{method:'POST',body:JSON.stringify({jobId,part:i+1,parts:chunks.length,items:chunks[i]})});if(!r.ok)throw Error('HTTP '+r.status)}}catch(e){this.disabled=false;copyCodes('发送失败（'+e.message+'）。已改为复制编号：\n');return}
+ msg('已发送到电脑，等待电脑导入…');const t0=Date.now();let ack=null,acks={};
+ while(Date.now()-t0<60000&&!ack){await new Promise(r=>setTimeout(r,3000));
+  try{const tx=await (await fetch(RT+'-ack/json?poll=1&since='+ts)).text();
+   for(const l of tx.split('\n')){if(!l.trim())continue;try{const m=JSON.parse(l);if(m.event=='message'){const j=JSON.parse(m.message);if(j.jobId==jobId)acks[j.part||1]=j}}catch(e){}}}catch(e){}
+  const ks=Object.keys(acks);msg('已发送到电脑，等待电脑导入… 已回执 '+ks.length+'/'+chunks.length);if(ks.length>=chunks.length){ack={ok:[],fail:[]};ks.forEach(k=>{ack.ok.push(...(acks[k].ok||[]));ack.fail.push(...(acks[k].fail||[]))})}}
+ this.disabled=false;
+ if(!ack){msg('已发送，电脑可能没开或 Eagle 没开，开机后会自动补导');return}
+ const okS=new Set(ack.ok||[]);const pv=V;V=v;cs.forEach(d=>{if(okS.has((v=='video'?'V':'I')+d.no))setSel(d,false)});V=pv;
+ msg('电脑已导入 成功'+okS.size+' 失败'+(ack.fail||[]).length+((ack.fail||[]).length?'\n'+ack.fail.map(f=>f.id+'：'+f.reason).join('\n'):''));CB?openDet(CB):home()};
 home();
 </script></body></html>
