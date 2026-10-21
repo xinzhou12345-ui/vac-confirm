@@ -40,7 +40,7 @@
 .bc .t{white-space:normal!important;overflow:visible!important;text-overflow:clip!important;padding-bottom:9px!important;word-break:break-word}.bc .au span{font-size:11px;color:#666}.bc .au i{color:#000!important;display:flex;align-items:center;gap:3px;font-size:12px}.bc .au i em{font-style:normal}.bc .au i svg{flex:none}.ok,.ok.on,.on>.ok,.sel .ok{width:15px!important;height:15px!important;font-size:9px!important;border-width:1px!important;right:8px;bottom:8px}.au i[data-b]{font-size:11px!important;color:#666!important;display:inline-flex;align-items:center;gap:3px;font-style:normal}.au i[data-b] em{font-size:11px!important;color:#666!important;font-style:normal}.dh{gap:8px!important;padding-right:12px!important}.dh #dav img,.dh #dav .av{width:30px!important;height:30px!important}.dh b{font-size:15px!important;min-width:0}.dh .tabs{flex:none;display:flex;gap:12px;align-items:center;height:100%}.dh .tabs a{font-size:12px;color:#999;position:relative;padding:4px 0;white-space:nowrap;cursor:pointer;text-decoration:none}.dh .tabs a.on{color:#222;font-weight:600}.dh .tabs a.on:after{content:'';position:absolute;left:50%;bottom:-3px;width:16px;height:2px;margin-left:-8px;border-radius:1px;background:#ff2442}.dh .tabs a.dis{color:#ccc;pointer-events:none}.sec.hid{display:none}.sec{border-bottom:0!important}
 .ov .gc b{display:none!important}.ov .gc::after{content:'';position:absolute;inset:0;border-radius:4px;box-shadow:inset 0 0 0 2px #ff2442;display:none;pointer-events:none}.ov .gc.sel::after{display:block}.pill.ap{cursor:pointer;pointer-events:auto}.pill.asel{background:#ff2442!important;color:#fff!important}
 .zv{display:none!important;align-items:flex-start!important;justify-content:flex-start!important;overflow:auto!important;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-x pan-y pinch-zoom!important}.zv.on{display:block!important}.zv img{display:block;width:100vw!important;height:auto!important;max-width:none!important;max-height:none!important;object-fit:initial!important;touch-action:pan-x pan-y pinch-zoom!important;margin:0 auto}.zv.short img{position:absolute;top:50%;left:0;transform:translateY(-50%)}.zv .hint{position:fixed!important;pointer-events:none}
-</style></head><body>
+.ov .gc{aspect-ratio:3/4!important}.ov .gc img{object-fit:cover!important;object-position:center top!important;height:100%!important}</style></head><body>
 <div class=top><b data-v=image>图片</b><b data-v=video>视频</b></div>
 <div class=wf id=wf><div class=col></div><div class=col></div></div>
 <div class=det id=det><div class=dh><span onclick="closeDet()"><svg viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4l-8 8 8 8"/></svg></span><i id=dav></i><b id=dt></b><div class=tabs id=dtabs></div></div><div id=db></div></div>
@@ -113,15 +113,22 @@ document.getElementById('imp').onclick=async function(){const cs=sel();if(!cs.le
  items.forEach(it=>{if(it.annotation.length>800)it.annotation=it.annotation.slice(0,800)+'…'});
  const enc=o=>new TextEncoder().encode(JSON.stringify(o)).length,chunks=[[]];items.forEach(it=>{const c=chunks[chunks.length-1];if(c.length&&enc({jobId,part:99,parts:99,items:c.concat([it])})>3800)chunks.push([it]);else c.push(it)});
  try{for(let i=0;i<chunks.length;i++){const r=await fetch(RT,{method:'POST',body:JSON.stringify({jobId,part:i+1,parts:chunks.length,items:chunks[i]})});if(!r.ok)throw Error('HTTP '+r.status)}}catch(e){this.disabled=false;copyCodes('发送失败（'+e.message+'）。已改为复制编号：\n');return}
- msg('已发送到电脑，等待电脑导入…');const t0=Date.now();let ack=null,acks={};
- while(Date.now()-t0<60000&&!ack){await new Promise(r=>setTimeout(r,3000));
-  try{const tx=await (await fetch(RT+'-ack/json?poll=1&since='+ts)).text();
-   for(const l of tx.split('\n')){if(!l.trim())continue;try{const m=JSON.parse(l);if(m.event=='message'){const j=JSON.parse(m.message);if(j.jobId==jobId)acks[j.part||1]=j}}catch(e){}}}catch(e){}
-  const ks=Object.keys(acks);msg('已发送到电脑，等待电脑导入… 已回执 '+ks.length+'/'+chunks.length);if(ks.length>=chunks.length){ack={ok:[],fail:[]};ks.forEach(k=>{ack.ok.push(...(acks[k].ok||[]));ack.fail.push(...(acks[k].fail||[]))})}}
- this.disabled=false;
- if(!ack){msg('已发送，电脑可能没开或 Eagle 没开，开机后会自动补导');return}
- const okS=new Set(ack.ok||[]);const pv=V;V=v;cs.forEach(d=>{if(okS.has((v=='video'?'V':'I')+d.no))setSel(d,false)});V=pv;
- msg('电脑已导入 成功'+okS.size+' 失败'+(ack.fail||[]).length+((ack.fail||[]).length?'\n'+ack.fail.map(f=>f.id+'：'+f.reason).join('\n'):''));CB?openDet(CB):home()};
+ this.disabled=false;const job={jobId,ts,parts:chunks.length,total:items.length,t0:Date.now()};pjSave(pjLoad().concat([job]));
+ watchJob(job,ack=>{const okS=new Set(ack.ok||[]);const pv=V;V=v;cs.forEach(d=>{if(okS.has((v=='video'?'V':'I')+d.no))setSel(d,false)});V=pv;CB?openDet(CB):home()})};
+const PJK='vacPendingJobs';function pjLoad(){try{return JSON.parse(localStorage.getItem(PJK)||'[]')}catch(e){return[]}}
+function pjSave(a){try{localStorage.setItem(PJK,JSON.stringify(a))}catch(e){}}
+function pjDel(id){pjSave(pjLoad().filter(j=>j.jobId!=id))}
+const WAITMS=600000;
+async function watchJob(job,done){const acks={};msg('已发送，等待电脑导入…');
+ for(let first=1;first||Date.now()-job.t0<WAITMS;first=0){
+  try{const tx=await (await fetch(RT+'-ack/json?poll=1&since='+job.ts)).text();
+   for(const l of tx.split('\n')){if(!l.trim())continue;try{const m=JSON.parse(l);if(m.event=='message'){const j=JSON.parse(m.message);if(j.jobId==job.jobId)acks[j.part||1]=j}}catch(e){}}}catch(e){}
+  const ks=Object.keys(acks);let ok=[],fail=[];ks.forEach(k=>{ok.push(...(acks[k].ok||[]));fail.push(...(acks[k].fail||[]))});
+  if(ks.length>=job.parts){pjDel(job.jobId);msg('已导入 '+ok.length+' 张'+(fail.length?'，失败 '+fail.length+' 张\n'+fail.map(f=>(f.id||'')+'：'+(f.reason||'')).join('\n'):''));if(done)done({ok,fail});return}
+  msg(ks.length?'已导入 '+ok.length+'/'+(job.total||'?')+'，等待电脑导入…':'已发送，等待电脑导入…');
+  await new Promise(r=>setTimeout(r,4000))}
+ pjDel(job.jobId);msg(Object.keys(acks).length?'部分导入未完成，请到电脑上检查 Eagle':'已发送，电脑可能没开或 Eagle 没开，开机后会自动补导')}
+pjSave(pjLoad().filter(j=>Date.now()-j.t0<432e5));pjLoad().forEach(j=>watchJob(j));
 home();
 </script><style>
 *{font-family:"PingFang SC",-apple-system,"Helvetica Neue",sans-serif}
