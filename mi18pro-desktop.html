@@ -1,4 +1,4 @@
-<!doctype html><html lang=zh><head><meta charset=utf-8><title>小米18Pro 视觉确认（桌面）</title><style>
+<!doctype html><html lang=zh><head><meta name="referrer" content="no-referrer"><meta charset=utf-8><title>小米18Pro 视觉确认（桌面）</title><style>
 *{box-sizing:border-box}body{margin:0;background:#fafafa;color:#222;font:14px/1.4 "PingFang SC",-apple-system,"Microsoft YaHei","Noto Sans CJK SC",sans-serif;padding-bottom:80px}
 .hd{position:sticky;top:0;z-index:5;background:#fff;border-bottom:1px solid #eee;display:flex;align-items:center;gap:22px;padding:12px 28px}
 .hd img{width:36px;height:36px;border-radius:9px}.hd h1{font-size:17px;margin:0}.hd small{color:#999;margin-left:6px;font-weight:400}
@@ -51,7 +51,7 @@ $('g').ondblclick=e=>{const c=e.target.closest('.c');if(c){const d=cur[+c.datase
 $('all').onclick=()=>{const allOn=cur.every(d=>S[V].has(d.no));cur.forEach(d=>setSel(d,!allOn));render()};
 $('clr').onclick=()=>{S[V].clear();render()};
 function openLb(i){li=(i+cur.length)%cur.length;const d=cur[li];$('lb').style.display='flex';
- $('lm').innerHTML=V=='video'?`<img src="${d.th}"><div style="color:#aaa;text-align:center">视频封面 · <a style=color:#8cf target=_blank href="${d.url}">去微博看视频</a></div>`:`<img src="${d.src||d.th}">`;
+ $('lm').innerHTML=V=='video'?`<img src="${d.th}"><div style="color:#aaa;text-align:center">视频封面 · <a style=color:#8cf target=_blank href="${d.url}">去微博看视频</a></div>`:`<img referrerpolicy="no-referrer" src="${d.src||d.th}" onerror="if(this.src!=='${d.th}')this.src='${d.th}'">`;
  $('li').innerHTML=`<h3>${d.no} · ${d.g}</h3><div>${d.t} · ${d.wh}</div><div style="margin:6px 0;color:#f9a">${d.why}</div><p>${(d.ann||'').replace(/</g,'&lt;')}</p><a target=_blank href="${d.url}">原微博</a>`}
 document.querySelector('#lb .x').onclick=()=>$('lb').style.display='none';
 document.querySelectorAll('#lb .ar').forEach((a,k)=>a.onclick=()=>openLb(li+(k?1:-1)));
